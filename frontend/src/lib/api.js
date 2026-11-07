@@ -37,6 +37,14 @@ export async function apiFetch(path, options = {}) {
 	return res;
 }
 
+function sanitizeTitle(rawTitle) {
+	const t = (rawTitle || '').trim();
+	if (!t || t.endsWith('Switch OS')) {
+		return 'Switch Dashboard';
+	}
+	return t;
+}
+
 export async function checkAuthStatus() {
 	try {
 		const data = await apiFetch('/api/auth/status');
@@ -47,7 +55,7 @@ export async function checkAuthStatus() {
 			username: data.username || 'admin',
 			csrfToken: data.csrf_token || '',
 			version: data.version || '2.1.0',
-			title: data.title || 'Switch Dashboard'
+			title: sanitizeTitle(data.title)
 		});
 		return data;
 	} catch {
@@ -62,6 +70,9 @@ export async function refreshDashboardData() {
 			apiFetch('/api/switches'),
 			apiFetch('/api/config')
 		]);
+		if (cfg) {
+			cfg.title = sanitizeTitle(cfg.title);
+		}
 		switchesStore.set(switches || []);
 		configStore.set(cfg || null);
 		if (cfg && cfg.title) {

@@ -16,7 +16,7 @@ An audit of the initial SvelteKit migration identified four critical defects tha
 
 1. **Uncompiled utility classes (broken layout and giant SVGs):** Route templates (`+page.svelte`, `topology/+page.svelte`, `clients/+page.svelte`, `backups/+page.svelte`, `logs/+page.svelte`, `settings/+page.svelte`) used Tailwind CSS classes (`grid`, `flex`, `w-6`, `h-6`, `bg-[#0b0d12]`, `p-4`) without Tailwind installed in `frontend/package.json`. Consequently, layouts collapsed into vertical stacks and `<svg>` icons lacking explicit `width`/`height` attributes expanded to full viewport width.
 2. **Raw color literals in templates:** Components embedded dozens of ad-hoc hex colors (`#8c96a8`, `#232936`, `#006fff`, `#ff3d71`) directly in markup instead of referencing semantic CSS custom properties.
-3. **Misappropriated third-party branding:** The UI and backend labeled the product `"UniFi Switch OS"` and `"UniFi Devices"`. While the visual density and hardware-first presentation take inspiration from modern network appliance consoles, the product is **Switch Dashboard** and must never impersonate Ubiquiti/UniFi branding.
+3. **Misappropriated third-party branding:** The UI and backend previously used third-party network vendor names instead of the project's actual identity. While the visual density and hardware-first presentation take inspiration from modern network appliance consoles, the product is **Switch Dashboard** and must never impersonate external vendor branding.
 4. **Unstyled first paint risk:** Styles were only imported via JavaScript hydration in `+layout.svelte` rather than guaranteeing critical canvas/surface tokens in `app.html`.
 
 **What is kept:**
@@ -33,7 +33,7 @@ An audit of the initial SvelteKit migration identified four critical defects tha
 2. **Token-only styling with zero external CSS frameworks** — Every component uses semantic CSS custom properties and scoped/global CSS classes defined in `frontend/src/app.css`, *so we never write Tailwind utility classes or raw hex/px literals in `.svelte` templates.* (Aesthetic-usability effect)
 3. **Intrinsic SVG and layout geometry** — Every `<svg>` element declares explicit `width` and `height` HTML attributes in addition to CSS sizing, and `app.html` defines critical dark-canvas rules inline, *so we never render giant fallback SVGs or flash an unstyled white screen.* (First impression / 50 ms rule)
 4. **Tabular precision for network data** — All MAC addresses, IPv4/IPv6 addresses, bitrates, byte counters, VLAN IDs, and optical dBm readings use monospace typography with `font-variant-numeric: tabular-nums`, *so live polling updates never cause horizontal layout jitter.* (Recognition over recall)
-5. **Honest identity and content** — The console identifies itself as **Switch Dashboard** and displays only real scraped switch/FDB telemetry or explicit empty states, *so we never borrow third-party trademarks ("UniFi") or invent placeholder metrics.*
+5. **Honest identity and content** — The console identifies itself as **Switch Dashboard** and displays only real scraped switch/FDB telemetry or explicit empty states, *so we never borrow third-party vendor trademarks or invent placeholder metrics.*
 
 ## 4. Tokens
 
@@ -149,7 +149,7 @@ All colors are exposed as CSS custom properties on `:root` in `frontend/src/app.
 - **D1. MUST** use semantic CSS custom properties from `frontend/src/app.css`; **MUST NOT** use raw hex colors in `.svelte` route files.
 - **D2. MUST NOT** use Tailwind utility classes unless Tailwind is installed and configured (this repository uses pure semantic CSS in `frontend/src/app.css`).
 - **D3. MUST** include explicit `width` and `height` HTML attributes on every `<svg>` element (except the responsive chart/topology canvas SVGs which have explicit CSS container dimensions).
-- **D4. MUST NOT** brand the interface as `"UniFi"` or `"Ubiquiti"`; use `"Switch Dashboard"` as the product identity.
+- **D4. MUST NOT** brand the interface with third-party vendor names; use `"Switch Dashboard"` as the product identity.
 - **D5. MUST** maintain at least `4.5:1` contrast ratio for body text and `3:1` for UI controls/badges.
 - **D6. MUST** format all numeric telemetry, MAC addresses, IP addresses, and port counters with `font-variant-numeric: tabular-nums`.
 - **D7. MUST** associate every form `<input>`, `<select>`, and `<textarea>` with a `<label>`.
@@ -159,7 +159,7 @@ All colors are exposed as CSS custom properties on `:root` in `frontend/src/app.
 
 - **Banned:** Using uncompiled Tailwind classes (`flex`, `grid`, `w-6`, `bg-[#...]`) in Svelte templates. *Do instead:* Use the semantic layout and component classes in `frontend/src/app.css`.
 - **Banned:** Omitting `width`/`height` attributes on inline SVG icons. *Do instead:* Always specify `width="18" height="18"` (or appropriate pixel size) on `<svg>`.
-- **Banned:** Calling the product `"UniFi Switch OS"`. *Do instead:* Use `"Switch Dashboard"`.
+- **Banned:** Calling the product by third-party vendor names. *Do instead:* Use `"Switch Dashboard"`.
 
 ## 13. Pre-delivery checklist
 
@@ -183,4 +183,4 @@ All colors are exposed as CSS custom properties on `:root` in `frontend/src/app.
 
 | Date | Change | Decision |
 | --- | --- | --- |
-| 2026-11-07 | Initial design system definition (`Precision Rack Telemetry`), replacing broken utility classes and removing third-party "UniFi" branding | Recorded in `docs/design-system.md` & `AGENTS.md` |
+| 2026-11-07 | Initial design system definition (`Precision Rack Telemetry`), replacing broken utility classes and enforcing `Switch Dashboard` identity | Recorded in `docs/design-system.md` & `AGENTS.md` |

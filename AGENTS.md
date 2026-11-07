@@ -3,7 +3,7 @@
 ## Scope and design system
 
 - Read `docs/design-system.md` before changing any frontend route, component, or stylesheet. It is the single source of truth for visual tokens, typography, contrast ratios, component states, and Directives `D1`–`D8`.
-- Never brand the application as `"UniFi"` or `"Ubiquiti"`. The product is **Switch Dashboard** (L2 operations and telemetry console for Horaco, KeepLink, and RTLPlayground switches).
+- Never brand the application with third-party vendor names. The product is **Switch Dashboard** (L2 operations and telemetry console for Horaco, KeepLink, and RTLPlayground switches).
 - Do not use Tailwind CSS utility classes in `.svelte` files unless Tailwind is explicitly installed and approved. All components must use semantic classes and CSS custom properties defined in `frontend/src/app.css`.
 - Every `<svg>` icon must include explicit `width` and `height` HTML attributes so icons never expand to full viewport width.
 

@@ -59,7 +59,7 @@ Before driving user journeys, verify:
 - `GET http://127.0.0.1:<ephemeral_app_port>/api/auth/status` returns HTTP `200` with `{"setup_required": true, "authenticated": false}`.
 - `GET http://127.0.0.1:<ephemeral_app_port>/` returns HTTP `200` with the embedded SvelteKit HTML shell (`<title>Switch Dashboard</title>`, inline dark canvas first-paint CSS `#090c10`).
 - **Design System Contract Audit (`docs/design-system.md` Directives `D1`–`D8`)**:
-  - `D1` (Brand Integrity): Zero occurrences of `"UniFi"` in `frontend/src/`, `cmd/`, or `internal/`.
+  - `D1` (Brand Integrity): Zero third-party vendor branding in `frontend/src/`, `cmd/`, or `internal/`.
   - `D2` (No Uncompiled Utility Classes): Every class attribute in `frontend/src/routes/**/*.svelte` is backed by a rule in `frontend/src/app.css` or component `<style>` block; zero Tailwind utility tokens (`grid-cols-*`, `bg-[#...]`, `w-6`, `h-6`).
   - `D3` (SVG Explicit Sizing): Every `<svg>` element in `frontend/src/routes/**/*.svelte` declares explicit numeric `width` and `height` attributes (or `viewBox` on canvas `<svg class="topology-svg">` / `<svg class="chart-svg">`).
   - `D4` (Zero Raw Hex Colors in Route Components): Zero raw `#rrggbb` hex literals inside `frontend/src/routes/**/*.svelte` markup or script blocks.

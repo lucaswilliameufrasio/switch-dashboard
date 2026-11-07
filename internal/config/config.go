@@ -383,8 +383,14 @@ func (s *Store) Load() {
 		cfg.Auth.Username = "admin"
 	}
 
-	// Transparently encrypt any plaintext switch passwords at rest
+	// Migrate legacy or empty title to "Switch Dashboard"
 	needsSave := false
+	if strings.TrimSpace(cfg.Title) == "" || strings.HasSuffix(strings.TrimSpace(cfg.Title), "Switch OS") {
+		cfg.Title = "Switch Dashboard"
+		needsSave = true
+	}
+
+	// Transparently encrypt any plaintext switch passwords at rest
 	for i := range cfg.Switches {
 		pw := cfg.Switches[i].Password
 		if pw != "" && !s.Vault.IsEncrypted(pw) {
@@ -401,6 +407,9 @@ func (s *Store) Load() {
 }
 
 func (s *Store) saveLocked() error {
+	if strings.TrimSpace(s.cfg.Title) == "" || strings.HasSuffix(strings.TrimSpace(s.cfg.Title), "Switch OS") {
+		s.cfg.Title = "Switch Dashboard"
+	}
 	for i := range s.cfg.Switches {
 		pw := s.cfg.Switches[i].Password
 		if pw != "" && !s.Vault.IsEncrypted(pw) {
@@ -435,6 +444,9 @@ func (s *Store) GetPublicConfig() AppConfig {
 	var copyCfg AppConfig
 	_ = json.Unmarshal(raw, &copyCfg)
 	copyCfg.Auth.PasswordHash = ""
+	if strings.TrimSpace(copyCfg.Title) == "" || strings.HasSuffix(strings.TrimSpace(copyCfg.Title), "Switch OS") {
+		copyCfg.Title = "Switch Dashboard"
+	}
 	for i := range copyCfg.Switches {
 		copyCfg.Switches[i].HasPassword = copyCfg.Switches[i].Password != ""
 		copyCfg.Switches[i].Password = ""

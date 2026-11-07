@@ -75,7 +75,10 @@ func (s *Server) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 	var title string
 	s.store.Read(func(cfg *config.AppConfig) {
 		setupRequired = cfg.Auth.PasswordHash == ""
-		title = cfg.Title
+		title = strings.TrimSpace(cfg.Title)
+		if title == "" || strings.HasSuffix(title, "Switch OS") {
+			title = "Switch Dashboard"
+		}
 	})
 	sess := s.auth.GetSession(r)
 	if sess == nil {
