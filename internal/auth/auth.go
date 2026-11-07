@@ -212,15 +212,17 @@ func ValidateCSRFAndOrigin(r *http.Request, s *Session) bool {
 	if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
 		return true
 	}
+	reqHost := r.Host
+	fwdHost := r.Header.Get("X-Forwarded-Host")
 	// Check Origin if present
 	if origin := r.Header.Get("Origin"); origin != "" {
 		u, err := url.Parse(origin)
-		if err != nil || !sameHost(u.Host, r.Host) {
+		if err != nil || (!sameHost(u.Host, reqHost) && (fwdHost == "" || !sameHost(u.Host, fwdHost))) {
 			return false
 		}
 	} else if referer := r.Header.Get("Referer"); referer != "" {
 		u, err := url.Parse(referer)
-		if err != nil || !sameHost(u.Host, r.Host) {
+		if err != nil || (!sameHost(u.Host, reqHost) && (fwdHost == "" || !sameHost(u.Host, fwdHost))) {
 			return false
 		}
 	}
