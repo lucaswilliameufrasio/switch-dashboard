@@ -110,6 +110,21 @@
 		}
 	}
 
+	let lastSyncedInspectorTs = 0;
+	$effect(() => {
+		const sw = $selectedSwitch;
+		if (sw && inspectedPort && sw.timestamp && sw.timestamp !== lastSyncedInspectorTs) {
+			lastSyncedInspectorTs = sw.timestamp;
+			const updated = (sw.ports || []).find((p) => String(p.port) === String(inspectedPort.port));
+			if (updated) {
+				inspectedPort = updated;
+			}
+			if (historyPeriod === 'live') {
+				loadPortHistory(inspectedPort.port, 'live');
+			}
+		}
+	});
+
 	async function loadPortHistory(portNum, period) {
 		if (!$selectedSwitch) return;
 		historyPeriod = period;

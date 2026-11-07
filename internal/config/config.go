@@ -324,8 +324,8 @@ func (s *Store) copyIfMissing(src, dst string) {
 func defaultConfig() AppConfig {
 	return AppConfig{
 		Title:                 "Switch Dashboard",
-		RefreshInterval:       15,
-		MACRefreshMultiplier:  5,
+		RefreshInterval:       3,
+		MACRefreshMultiplier:  10,
 		PortsWrapThreshold:    0,
 		MaxRequestRetries:     3,
 		EnabledColumns:        []string{"port", "status", "speed", "packets", "bytes", "info", "notes"},
@@ -371,10 +371,10 @@ func (s *Store) Load() {
 		cfg.MapPositions = make(map[string]map[string]float64)
 	}
 	if cfg.RefreshInterval <= 0 {
-		cfg.RefreshInterval = 15
+		cfg.RefreshInterval = 3
 	}
 	if cfg.MACRefreshMultiplier <= 0 {
-		cfg.MACRefreshMultiplier = 5
+		cfg.MACRefreshMultiplier = 10
 	}
 	if len(cfg.EnabledColumns) == 0 {
 		cfg.EnabledColumns = []string{"port", "status", "speed", "packets", "bytes", "info", "notes"}
@@ -383,10 +383,15 @@ func (s *Store) Load() {
 		cfg.Auth.Username = "admin"
 	}
 
-	// Migrate legacy or empty title to "Switch Dashboard"
+	// Migrate legacy or empty title and legacy 15s default refresh interval
 	needsSave := false
 	if strings.TrimSpace(cfg.Title) == "" || strings.HasSuffix(strings.TrimSpace(cfg.Title), "Switch OS") {
 		cfg.Title = "Switch Dashboard"
+		needsSave = true
+	}
+	if cfg.RefreshInterval == 15 && cfg.MACRefreshMultiplier == 5 {
+		cfg.RefreshInterval = 3
+		cfg.MACRefreshMultiplier = 10
 		needsSave = true
 	}
 

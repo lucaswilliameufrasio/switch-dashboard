@@ -1055,6 +1055,14 @@ func main() {
 	// Switch & Telemetry endpoints
 	mux.HandleFunc("/api/switches", srv.requireAuth(srv.handleSwitches))
 	mux.HandleFunc("/api/switches/", srv.requireAuth(srv.handleSwitchAction))
+	mux.HandleFunc("/api/poll", srv.requireAuth(func(w http.ResponseWriter, r *http.Request, _ *auth.Session) {
+		if r.Method != http.MethodPost {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "POST required"})
+			return
+		}
+		srv.poller.PollOnce()
+		writeJSON(w, http.StatusOK, map[string]any{"status": "ok"})
+	}))
 	mux.HandleFunc("/api/topology", srv.requireAuth(func(w http.ResponseWriter, r *http.Request, _ *auth.Session) {
 		writeJSON(w, http.StatusOK, srv.poller.BuildTopology())
 	}))

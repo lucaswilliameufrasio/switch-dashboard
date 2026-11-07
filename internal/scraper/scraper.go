@@ -182,15 +182,16 @@ type DeviceTemplate struct {
 }
 
 type HCSwitchScraper struct {
-	Name       string
-	IP         string
-	Username   string
-	Password   string
-	PortCount  int
-	Model      string
-	BaseURL    string
-	MaxRetries int
-	Store      *config.Store
+	Name            string
+	IP              string
+	Username        string
+	Password        string
+	PortCount       int
+	Model           string
+	BaseURL         string
+	MaxRetries      int
+	IncludeExtended bool
+	Store           *config.Store
 
 	client  *http.Client
 	jar     *cookiejar.Jar
@@ -310,8 +311,8 @@ func (s *HCSwitchScraper) loadTemplate() *DeviceTemplate {
 }
 
 func (s *HCSwitchScraper) doRequestWithRetry(method, fullURL string, headers map[string]string, postBody []byte) ([]byte, string, error) {
-	// Spacing between sequential uIP HTTP requests
-	time.Sleep(350 * time.Millisecond)
+	// Light spacing between sequential uIP HTTP requests (50ms keeps embedded TCP stack responsive without multi-second lag)
+	time.Sleep(50 * time.Millisecond)
 
 	attempts := s.MaxRetries
 	if attempts < 1 {
@@ -475,7 +476,6 @@ func (s *HCSwitchScraper) login() error {
 		s.jar.SetCookies(u, []*http.Cookie{{Name: "admin", Value: hashStr, Path: "/"}})
 	}
 
-	_, _, _ = s.doRequestWithRetry(http.MethodGet, s.BaseURL+"/", nil, nil)
 	return nil
 }
 
@@ -814,9 +814,14 @@ func (s *HCSwitchScraper) scrapeBuiltin() (SwitchData, error) {
 		applyStatsHTML(statsHTML, ports, nil)
 	}
 
-	dhcp := s.scrapeDHCPSnooping("/dhcp_snooping.cgi?page=dump", "enable_dhcpsnp", "page=static", "chkp")
-	igmp := s.scrapeIGMP("/igmp.cgi?page=dump", "enable_igmp", []string{"IP Address", "Port", "VLAN ID"})
-	jumbo := s.scrapeJumboFrame("/fwd.cgi?page=jumboframe", "enable_jumbo", "jumboframe")
+	var dhcp DHCPSnooping
+	var igmp IGMPInfo
+	var jumbo JumboFrameInfo
+	if s.IncludeExtended {
+		dhcp = s.scrapeDHCPSnooping("/dhcp_snooping.cgi?page=dump", "enable_dhcpsnp", "page=static", "chkp")
+		igmp = s.scrapeIGMP("/igmp.cgi?page=dump", "enable_igmp", []string{"IP Address", "Port", "VLAN ID"})
+		jumbo = s.scrapeJumboFrame("/fwd.cgi?page=jumboframe", "enable_jumbo", "jumboframe")
+	}
 
 	if len(ports) == 0 {
 		ports = s.fallbackPorts()
@@ -1347,52 +1352,51 @@ func (s *HCSwitchScraper) scrapeWithTemplate(tpl *DeviceTemplate) (SwitchData, e
 		}
 	}
 
-	// 4. DHCP Snooping
+	// 4. DHCP Snooping, 5. IGMP, 6. Jumbo Frame (only on extended cycles)
 	dhcp := DHCPSnooping{Enabled: false, Ports: map[string]string{}}
-	if tpl.DHCPSnooping.URL != "" {
-		dhcp = s.scrapeDHCPSnooping(
-			tpl.DHCPSnooping.URL,
-			defaultStr(tpl.DHCPSnooping.EnableInputName, "enable_dhcpsnp"),
-			defaultStr(tpl.DHCPSnooping.PortsFormAction, "page=static"),
-			defaultStr(tpl.DHCPSnooping.TrustCheckboxClass, "chkp"),
-		)
-	}
-
-	// 5. IGMP
 	igmp := IGMPInfo{Enabled: false, Entries: []IGMPEntry{}}
-	if tpl.IGMP.URL != "" {
-		kws := tpl.IGMP.TableHeaderKeywords
-		if len(kws) == 0 {
-			kws = []string{"IP Address", "Port", "VLAN ID"}
-		}
-		igmp = s.scrapeIGMP(tpl.IGMP.URL, defaultStr(tpl.IGMP.EnableInputName, "enable_igmp"), kws)
-	}
-
-	// 6. Jumbo Frame
 	jumbo := JumboFrameInfo{Enabled: false, Size: "Disabled"}
-	if tpl.JumboFrame.URL != "" {
-		if tpl.JumboFrame.Format == "json" || tpl.Format == "json" {
-			if raw, err := s.fetch(tpl.JumboFrame.URL); err == nil && raw != "" {
-				var arr []map[string]any
-				if json.Unmarshal([]byte(raw), &arr) == nil {
-					maxMTU := uint64(1500)
-					for _, obj := range arr {
-						v := parseCounter(mapStr(obj, "mtu", "1500"))
-						if v > maxMTU {
-							maxMTU = v
+
+	if s.IncludeExtended {
+		if tpl.DHCPSnooping.URL != "" {
+			dhcp = s.scrapeDHCPSnooping(
+				tpl.DHCPSnooping.URL,
+				defaultStr(tpl.DHCPSnooping.EnableInputName, "enable_dhcpsnp"),
+				defaultStr(tpl.DHCPSnooping.PortsFormAction, "page=static"),
+				defaultStr(tpl.DHCPSnooping.TrustCheckboxClass, "chkp"),
+			)
+		}
+		if tpl.IGMP.URL != "" {
+			kws := tpl.IGMP.TableHeaderKeywords
+			if len(kws) == 0 {
+				kws = []string{"IP Address", "Port", "VLAN ID"}
+			}
+			igmp = s.scrapeIGMP(tpl.IGMP.URL, defaultStr(tpl.IGMP.EnableInputName, "enable_igmp"), kws)
+		}
+		if tpl.JumboFrame.URL != "" {
+			if tpl.JumboFrame.Format == "json" || tpl.Format == "json" {
+				if raw, err := s.fetch(tpl.JumboFrame.URL); err == nil && raw != "" {
+					var arr []map[string]any
+					if json.Unmarshal([]byte(raw), &arr) == nil {
+						maxMTU := uint64(1500)
+						for _, obj := range arr {
+							v := parseCounter(mapStr(obj, "mtu", "1500"))
+							if v > maxMTU {
+								maxMTU = v
+							}
+						}
+						if maxMTU > 1522 {
+							jumbo = JumboFrameInfo{Enabled: true, Size: fmt.Sprintf("%dBytes", maxMTU)}
 						}
 					}
-					if maxMTU > 1522 {
-						jumbo = JumboFrameInfo{Enabled: true, Size: fmt.Sprintf("%dBytes", maxMTU)}
-					}
 				}
+			} else {
+				jumbo = s.scrapeJumboFrame(
+					tpl.JumboFrame.URL,
+					defaultStr(tpl.JumboFrame.EnableInputName, "enable_jumbo"),
+					defaultStr(tpl.JumboFrame.SelectName, "jumboframe"),
+				)
 			}
-		} else {
-			jumbo = s.scrapeJumboFrame(
-				tpl.JumboFrame.URL,
-				defaultStr(tpl.JumboFrame.EnableInputName, "enable_jumbo"),
-				defaultStr(tpl.JumboFrame.SelectName, "jumboframe"),
-			)
 		}
 	}
 

@@ -209,7 +209,7 @@ func (e *Engine) PollOnce() {
 	counters := e.loadCounters()
 	e.countersMu.Unlock()
 
-	now := float64(time.Now().Unix())
+	now := float64(time.Now().UnixMilli()) / 1000.0
 	results := make(map[string]scraper.SwitchData)
 	speeds := make(map[string]map[string]PortSpeed)
 	shouldSaveHist := false
@@ -249,31 +249,28 @@ func (e *Engine) PollOnce() {
 			continue
 		}
 
-		sc := scraper.NewHCSwitchScraper(sw, e.store, maxRetries)
-
 		e.cacheMu.RLock()
 		lastMAC := e.lastMACScrape[ip]
 		_, hasMAC := e.macTables[ip]
+		prevData, hasPrevData := e.cachedData[ip]
 		e.cacheMu.RUnlock()
 
-		if now-lastMAC >= float64(refreshInterval*macMultiplier) || !hasMAC {
-			e.store.Logger().Info("poller", "Scraping MAC table for %s (%s)...", sw.Name, ip)
-			if tbl, err := sc.ScrapeMACTable(); err == nil {
-				e.cacheMu.Lock()
-				e.macTables[ip] = tbl
-				e.lastMACScrape[ip] = now
-				e.cacheMu.Unlock()
-			} else {
-				e.store.Logger().Warn("poller", "MAC scrape failed for %s: %v", ip, err)
-				e.cacheMu.Lock()
-				if _, ok := e.macTables[ip]; !ok {
-					e.macTables[ip] = []scraper.MACEntry{}
-				}
-				e.cacheMu.Unlock()
-			}
+		needMAC := float64(time.Now().UnixMilli())/1000.0-lastMAC >= float64(refreshInterval*macMultiplier) || !hasMAC
+
+		sc := scraper.NewHCSwitchScraper(sw, e.store, maxRetries)
+		sc.IncludeExtended = needMAC || !hasPrevData
+
+		// 1. Scrape port status & traffic counters FIRST so bandwidth telemetry is never delayed by multi-page MAC scraping
+		data := sc.Scrape()
+		now = float64(time.Now().UnixMilli()) / 1000.0
+		data.Timestamp = now
+
+		if !sc.IncludeExtended && hasPrevData {
+			data.DHCPSnooping = prevData.DHCPSnooping
+			data.IGMP = prevData.IGMP
+			data.JumboFrame = prevData.JumboFrame
 		}
 
-		data := sc.Scrape()
 		e.cacheMu.RLock()
 		data.MACTable = e.macTables[ip]
 		data.MACTimestamp = e.lastMACScrape[ip]
@@ -332,7 +329,7 @@ func (e *Engine) PollOnce() {
 				}
 				dt := now - *last.Ts
 				if dt <= 0 {
-					dt = 15.0
+					dt = float64(refreshInterval)
 				}
 				maxBytes := uint64((linkBps * dt * 1.5) / 8.0)
 				if deltaTx > maxBytes {
@@ -413,6 +410,34 @@ func (e *Engine) PollOnce() {
 			swSpeeds[p.Port] = PortSpeed{
 				SpeedTx: p.SpeedTxBps,
 				SpeedRx: p.SpeedRxBps,
+			}
+		}
+
+		// Publish updated port telemetry immediately into live cache before any slow MAC table scrape
+		e.cacheMu.Lock()
+		e.cachedData[ip] = data
+		e.cachedSpeeds[ip] = swSpeeds
+		e.cacheMu.Unlock()
+
+		// 2. Scrape MAC table afterwards when due
+		if needMAC {
+			e.store.Logger().Info("poller", "Scraping MAC table for %s (%s)...", sw.Name, ip)
+			if tbl, err := sc.ScrapeMACTable(); err == nil {
+				macNow := float64(time.Now().UnixMilli()) / 1000.0
+				e.cacheMu.Lock()
+				e.macTables[ip] = tbl
+				e.lastMACScrape[ip] = macNow
+				data.MACTable = tbl
+				data.MACTimestamp = macNow
+				e.cachedData[ip] = data
+				e.cacheMu.Unlock()
+			} else {
+				e.store.Logger().Warn("poller", "MAC scrape failed for %s: %v", ip, err)
+				e.cacheMu.Lock()
+				if _, ok := e.macTables[ip]; !ok {
+					e.macTables[ip] = []scraper.MACEntry{}
+				}
+				e.cacheMu.Unlock()
 			}
 		}
 

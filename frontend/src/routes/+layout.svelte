@@ -27,7 +27,7 @@
 				if ($authState.authenticated) {
 					await refreshDashboardData();
 				}
-			}, 15000);
+			}, 2500);
 		})();
 		return () => {
 			if (timer) clearInterval(timer);
@@ -104,6 +104,11 @@
 
 	async function manualSync() {
 		syncing = true;
+		try {
+			await apiFetch('/api/poll', { method: 'POST' });
+		} catch {
+			// ignore
+		}
 		await refreshDashboardData();
 		syncing = false;
 		showToast('Telemetria sincronizada.', 'success');
