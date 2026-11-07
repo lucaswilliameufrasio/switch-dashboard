@@ -560,6 +560,7 @@ func (s *HCSwitchScraper) fallbackData(errMsg string) SwitchData {
 		Name:         s.Name,
 		IP:           s.IP,
 		Model:        s.Model,
+		Status:       "offline",
 		Ports:        s.fallbackPorts(),
 		MACTable:     []MACEntry{},
 		DHCPSnooping: DHCPSnooping{Enabled: false, Ports: map[string]string{}},

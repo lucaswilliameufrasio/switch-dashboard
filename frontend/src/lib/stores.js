@@ -19,26 +19,31 @@ export const toastStore = writable(null);
 export const dashboardState = derived(
 	[switchesStore, configStore],
 	([$switches, $cfg]) => {
-		const normalizedSwitches = ($switches || []).map((sw) => ({
-			...sw,
-			status: sw.error ? 'Offline' : sw.status || 'Online',
-			mac_address: sw.mac || sw.mac_address || '',
-			supports_mac: true,
-			supports_ddmi: true,
-			supports_backup: true,
-			ports: (sw.ports || []).map((p) => ({
-				...p,
-				is_up: p.status === 'up' || p.is_up === true,
-				tx_rate: (p.speed_tx_bps || 0) / 8,
-				rx_rate: (p.speed_rx_bps || 0) / 8,
-				tx_bytes: p.cum_tx || p.tx_bytes || 0,
-				rx_bytes: p.cum_rx || p.rx_bytes || 0
-			})),
-			mac_table: (sw.mac_table || []).map((m) => ({
-				...m,
-				hostname: m.host || m.hostname || ''
-			}))
-		}));
+		const normalizedSwitches = ($switches || []).map((sw) => {
+			const rawStatus = String(sw.status || 'online').toLowerCase();
+			const isOnline = !sw.error && rawStatus !== 'offline';
+			return {
+				...sw,
+				is_online: isOnline,
+				status: isOnline ? 'Online' : 'Offline',
+				mac_address: sw.mac || sw.mac_address || '',
+				supports_mac: true,
+				supports_ddmi: true,
+				supports_backup: true,
+				ports: (sw.ports || []).map((p) => ({
+					...p,
+					is_up: p.status === 'up' || p.is_up === true,
+					tx_rate: (p.speed_tx_bps || 0) / 8,
+					rx_rate: (p.speed_rx_bps || 0) / 8,
+					tx_bytes: p.cum_tx || p.tx_bytes || 0,
+					rx_bytes: p.cum_rx || p.rx_bytes || 0
+				})),
+				mac_table: (sw.mac_table || []).map((m) => ({
+					...m,
+					hostname: m.host || m.hostname || ''
+				}))
+			};
+		});
 
 		return {
 			switches: normalizedSwitches,

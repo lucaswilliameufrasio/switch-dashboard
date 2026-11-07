@@ -70,7 +70,7 @@
 			<div class="kpi-card" style="flex-direction: row; align-items: center; justify-content: space-between;">
 				<div>
 					<div style="display: flex; align-items: center; gap: 8px;">
-						<span class="status-dot {sw.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
+						<span class="status-dot {sw.is_online ? 'dot-online' : 'dot-offline'}"></span>
 						<span style="font-weight: 600; font-size: 13.5px;">{sw.name}</span>
 					</div>
 					<div class="mono" style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">

@@ -518,6 +518,7 @@ def main() -> int:
         assert sw_online, f"Mock switch did not come online with 6 ports: {switches_data}"
 
         sw1 = switches_data[0]
+        assert sw1["status"] == "online" and not sw1.get("error"), f"Switch reported offline or error: {sw1}"
         assert sw1["model"] == "ZX-SWTGW215AS", f"Unexpected model: {sw1}"
         ports_by_num = {p["port"]: p for p in sw1["ports"]}
         assert ports_by_num["1"]["speed"] == "2.5G", f"Unexpected Port 1 speed: {ports_by_num['1']}"

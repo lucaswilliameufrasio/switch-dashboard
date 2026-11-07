@@ -35,7 +35,7 @@
 		let totalMacs = 0;
 
 		for (const sw of switches) {
-			if (sw.status === 'Online') onlineSwitches++;
+			if (sw.is_online) onlineSwitches++;
 			for (const p of sw.ports || []) {
 				totalPorts++;
 				if (p.is_up) activePorts++;
@@ -309,7 +309,7 @@
 					class:active={$activeSwitchIdx === idx}
 					data-testid="switch-tab-{idx}"
 				>
-					<span class="status-dot {sw.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
+					<span class="status-dot {sw.is_online ? 'dot-online' : 'dot-offline'}"></span>
 					<span>{sw.name}</span>
 					<span class="mono" style="color: var(--text-muted); font-size: 11px;">{sw.ip}</span>
 				</button>
@@ -364,15 +364,17 @@
 		<section class="chassis-card" aria-label="Chassi do Switch {$selectedSwitch.name}" data-testid="switch-chassis">
 			<div class="chassis-header">
 				<div class="chassis-identity">
-					<span class="status-dot {$selectedSwitch.status === 'Online' ? 'dot-online' : 'dot-offline'}"></span>
+					<span class="status-dot {$selectedSwitch.is_online ? 'dot-online' : 'dot-offline'}"></span>
 					<div>
 						<div class="chassis-title-row">
 							<h2 class="chassis-name">{$selectedSwitch.name}</h2>
 							{#if $selectedSwitch.model}
 								<span class="badge badge-accent mono">{$selectedSwitch.model}</span>
 							{/if}
-							{#if $selectedSwitch.status !== 'Online'}
-								<span class="badge badge-danger">OFFLINE</span>
+							{#if $selectedSwitch.is_online}
+								<span class="badge badge-online" data-testid="switch-status-badge">ONLINE</span>
+							{:else}
+								<span class="badge badge-danger" data-testid="switch-status-badge">OFFLINE</span>
 							{/if}
 							{#if $selectedSwitch.jumbo_frame?.enabled}
 								<span class="badge badge-neutral mono">Jumbo {$selectedSwitch.jumbo_frame.size || 'ON'}</span>
