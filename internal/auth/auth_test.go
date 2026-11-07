@@ -34,11 +34,11 @@ func TestVaultEncryptDecrypt(t *testing.T) {
 }
 
 func TestPasswordHashAndSessionCSRF(t *testing.T) {
-	hash, err := HashPassword("UniFiAdminPass123")
+	hash, err := HashPassword("SwitchAdminPass123")
 	if err != nil {
 		t.Fatalf("HashPassword failed: %v", err)
 	}
-	if !VerifyPassword(hash, "UniFiAdminPass123") {
+	if !VerifyPassword(hash, "SwitchAdminPass123") {
 		t.Fatalf("VerifyPassword should succeed for valid password")
 	}
 	if VerifyPassword(hash, "wrongpassword") {

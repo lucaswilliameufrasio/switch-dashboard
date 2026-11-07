@@ -1,10 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>UniFi Switch OS</title>
-		<link rel="icon" href="/static/logo.png" />
+		<title>Switch Dashboard</title>
+		<meta name="theme-color" content="#0a0d12" />
+		<meta name="description" content="Switch Dashboard — Console de telemetria L2 para switches Horaco, KeepLink e RTL" />
+		<link
+			rel="icon"
+			type="image/svg+xml"
+			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2'%3E%3Crect x='2' y='6' width='20' height='12' rx='2' fill='%2311161f'/%3E%3Cpath d='M6 12h2M11 12h2M16 12h2' stroke='%2310b981' stroke-linecap='round'/%3E%3C/svg%3E"
+		/>
+		<style>
+			html, body {
+				margin: 0;
+				padding: 0;
+				background-color: #0a0d12;
+				color: #f1f5f9;
+				font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+				-webkit-font-smoothing: antialiased;
+			}
+			svg:not(.chart-svg):not(.topology-svg) {
+				max-width: 28px;
+				max-height: 28px;
+				flex-shrink: 0;
+			}
+		</style>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

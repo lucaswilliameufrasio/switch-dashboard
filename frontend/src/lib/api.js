@@ -46,8 +46,8 @@ export async function checkAuthStatus() {
 			authenticated: !!data.authenticated,
 			username: data.username || 'admin',
 			csrfToken: data.csrf_token || '',
-			version: data.version || '2026.8.0-unifi',
-			title: data.title || 'UniFi Switch OS'
+			version: data.version || '2.1.0',
+			title: data.title || 'Switch Dashboard'
 		});
 		return data;
 	} catch {

@@ -1,6 +1,6 @@
-# UniFi Switch OS — Hardened Controller for Horaco / KeepLink / RTL Managed Switches
+# Switch Dashboard — Hardened L2 Telemetry Console for Horaco / KeepLink / RTL Managed Switches
 
-Painel de controle e telemetria L2 de alta performance reescrito em **Go (`1.27+`)** e **SvelteKit**, com interface inspirada no **UniFi OS Server** e compilado em um **único binário estático autocontido** (`switch-dashboard`).
+Painel de controle e telemetria L2 de alta densidade reescrito em **Go (`1.27+`)** e **SvelteKit**, projetado com o sistema de design **Precision Rack Telemetry** ([`docs/design-system.md`](docs/design-system.md)) e compilado em um **único binário estático autocontido** (`switch-dashboard`).
 
 Projetado para monitorar switches gerenciáveis **Horaco**, **KeepLink** e firmwares **RTLPlayground** (chipsets Realtek RTL8372 / RTL8373 2.5GbE + 10GbE SFP+) diretamente via interface web/CGI nativa (sem necessidade de SNMP).
 
@@ -24,8 +24,8 @@ Projetado para monitorar switches gerenciáveis **Horaco**, **KeepLink** e firmw
 
 ## Funcionalidades Principais
 
-1. **Chassi Virtual 1U (UniFi Devices)**:
-   - Representação física das portas RJ45 2.5GbE e gaiolas SFP+ 10GbE com LEDs dinâmicos por velocidade (`10G`, `2.5G`, `1G`, `100M`).
+1. **Chassi Virtual 1U (Switch Faceplate)**:
+   - Representação física em escala das portas RJ45 2.5GbE e gaiolas SFP+ 10GbE com LEDs dinâmicos por velocidade (`10G`, `2.5G`, `1G`, `100M`).
    - Gráficos de banda em 3 escalas (`Tempo Real`, `1 Hora`, `24 Horas`).
    - Diagnóstico óptico **SFP+ DDMI** sob demanda (temperatura, tensão, corrente de bias, potência TX/RX em dBm).
    - Visualização e atualização instantânea da tabela **MAC FDB** por switch.

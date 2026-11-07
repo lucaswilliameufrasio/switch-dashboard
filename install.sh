@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "==================================================="
-echo "   UniFi Switch OS (Go + SvelteKit) - Installer    "
+echo "   Switch Dashboard (Go + SvelteKit) - Installer   "
 echo "==================================================="
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,7 +32,7 @@ sudo chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_DIR"
 echo "Configurando serviço systemd endurecido (/etc/systemd/system/$SERVICE_NAME)..."
 sudo tee "/etc/systemd/system/$SERVICE_NAME" > /dev/null <<EOF
 [Unit]
-Description=UniFi Switch OS Controller (Horaco / KeepLink / RTL)
+Description=Switch Dashboard L2 Telemetry Controller (Horaco / KeepLink / RTL)
 After=network-online.target
 Wants=network-online.target
 

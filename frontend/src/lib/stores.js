@@ -7,7 +7,7 @@ export const authState = writable({
 	username: '',
 	csrfToken: '',
 	version: '',
-	title: 'UniFi Switch OS'
+	title: 'Switch Dashboard'
 });
 
 export const switchesStore = writable([]);

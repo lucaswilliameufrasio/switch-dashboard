@@ -443,7 +443,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request, _ *auth.Se
 			sw.IP = strings.TrimSpace(sw.IP)
 			sw.Username = strings.TrimSpace(sw.Username)
 			sw.Model = strings.TrimSpace(sw.Model)
-			if sw.Model != "" && !strings.EqualFold(sw.Model, "internet") {
+			if sw.Model != "" && !strings.EqualFold(sw.Model, "internet") && !strings.EqualFold(sw.Model, "Generic Model") {
 				if _, err := config.SanitizeModelName(sw.Model); err != nil {
 					return fmt.Errorf("invalid model name '%s'", sw.Model)
 				}
@@ -1110,6 +1110,10 @@ func main() {
 	}
 	fileServer := http.FileServer(http.FS(distFS))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			writeJSON(w, http.StatusNotFound, map[string]any{"error": "API endpoint not found"})
+			return
+		}
 		path := strings.TrimPrefix(r.URL.Path, "/")
 		if path == "" {
 			path = "index.html"
@@ -1138,7 +1142,7 @@ func main() {
 		port = "8080"
 	}
 	addr := host + ":" + port
-	store.Logger().Info("server", "UniFi Switch OS Backend listening on http://%s (DataDir: %s)", addr, dataDir)
+	store.Logger().Info("server", "Switch Dashboard Backend listening on http://%s (DataDir: %s)", addr, dataDir)
 	httpServer := &http.Server{
 		Addr:              addr,
 		Handler:           securityHeadersMiddleware(mux),

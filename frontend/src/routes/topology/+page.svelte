@@ -1,402 +1,401 @@
 <script>
-  import { onMount } from 'svelte';
-  import { apiFetch } from '$lib/api.js';
-  import { showToast } from '$lib/stores.js';
+	import { onMount } from 'svelte';
+	import { apiFetch } from '$lib/api.js';
+	import { showToast } from '$lib/stores.js';
 
-  let loading = $state(true);
-  let rawNodes = $state([]);
-  let rawEdges = $state([]);
-  let savedPositions = $state({});
+	let loading = $state(true);
+	let rawNodes = $state([]);
+	let rawEdges = $state([]);
+	let savedPositions = $state({});
 
-  // Filters
-  let showClients = $state(true);
-  let showOffline = $state(false);
-  let selectedNode = $state(null);
+	let showClients = $state(true);
+	let showOffline = $state(false);
+	let selectedNode = $state(null);
 
-  // Pan & Zoom state
-  let zoom = $state(1);
-  let panX = $state(0);
-  let panY = $state(0);
-  let isPanning = $state(false);
-  let panStart = { x: 0, y: 0 };
+	let zoom = $state(1);
+	let panX = $state(0);
+	let panY = $state(0);
+	let isPanning = $state(false);
+	let panStart = { x: 0, y: 0 };
 
-  // Node dragging state
-  let draggingNodeId = $state(null);
-  let nodePositions = $state({});
+	let draggingNodeId = $state(null);
+	let nodePositions = $state({});
 
-  async function loadTopology() {
-    loading = true;
-    try {
-      const [topo, cfg] = await Promise.all([
-        apiFetch('/api/topology'),
-        apiFetch('/api/config/settings')
-      ]);
-      rawNodes = (topo.nodes || []).map((n) => ({
-        ...n,
-        label: n.name || n.label || n.id
-      }));
-      rawEdges = (topo.links || topo.edges || []).map((l) => ({
-        ...l,
-        from: l.source || l.from,
-        to: l.target || l.to,
-        label: l.speed && l.speed !== 'Unknown' ? l.speed : l.source_port || ''
-      }));
-      savedPositions = cfg.map_positions || {};
-      computeLayout();
-    } catch (e) {
-      showToast(e.message, 'error');
-    } finally {
-      loading = false;
-    }
-  }
+	async function loadTopology() {
+		loading = true;
+		try {
+			const [topo, cfg] = await Promise.all([
+				apiFetch('/api/topology'),
+				apiFetch('/api/config/settings')
+			]);
+			rawNodes = (topo.nodes || []).map((n) => ({
+				...n,
+				label: n.name || n.label || n.id
+			}));
+			rawEdges = (topo.links || topo.edges || []).map((l) => ({
+				...l,
+				from: l.source || l.from,
+				to: l.target || l.to,
+				label: l.speed && l.speed !== 'Unknown' ? l.speed : l.source_port || ''
+			}));
+			savedPositions = cfg.map_positions || {};
+			computeLayout();
+		} catch (e) {
+			showToast(e.message, 'error');
+		} finally {
+			loading = false;
+		}
+	}
 
-  function computeLayout(forceReset = false) {
-    const positions = forceReset ? {} : { ...savedPositions };
-    const switches = rawNodes.filter((n) => n.type === 'switch' || n.type === 'internet');
-    const infra = rawNodes.filter((n) => n.type !== 'switch' && n.type !== 'internet' && n.type !== 'client');
-    const clients = rawNodes.filter((n) => n.type === 'client');
+	function computeLayout(forceReset = false) {
+		const positions = forceReset ? {} : { ...savedPositions };
+		const switches = rawNodes.filter((n) => n.type === 'switch' || n.type === 'internet');
+		const infra = rawNodes.filter((n) => n.type !== 'switch' && n.type !== 'internet' && n.type !== 'client');
+		const clients = rawNodes.filter((n) => n.type === 'client');
 
-    const centerX = 640;
+		const centerX = 560;
 
-    switches.forEach((sw, i) => {
-      if (!positions[sw.id]) {
-        const spacing = 260;
-        const startX = centerX - ((switches.length - 1) * spacing) / 2;
-        positions[sw.id] = { x: startX + i * spacing, y: 140 };
-      }
-    });
+		switches.forEach((sw, i) => {
+			if (!positions[sw.id]) {
+				const spacing = 260;
+				const startX = centerX - ((switches.length - 1) * spacing) / 2;
+				positions[sw.id] = { x: startX + i * spacing, y: 120 };
+			}
+		});
 
-    infra.forEach((inf, i) => {
-      if (!positions[inf.id]) {
-        const spacing = 200;
-        const startX = centerX - ((infra.length - 1) * spacing) / 2;
-        positions[inf.id] = { x: startX + i * spacing, y: 310 };
-      }
-    });
+		infra.forEach((inf, i) => {
+			if (!positions[inf.id]) {
+				const spacing = 200;
+				const startX = centerX - ((infra.length - 1) * spacing) / 2;
+				positions[inf.id] = { x: startX + i * spacing, y: 270 };
+			}
+		});
 
-    clients.forEach((cl, i) => {
-      if (!positions[cl.id]) {
-        const cols = Math.max(6, Math.ceil(Math.sqrt(clients.length * 2)));
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const spacingX = 165;
-        const startX = centerX - ((cols - 1) * spacingX) / 2;
-        positions[cl.id] = { x: startX + col * spacingX, y: 470 + row * 110 };
-      }
-    });
+		clients.forEach((cl, i) => {
+			if (!positions[cl.id]) {
+				const cols = Math.max(5, Math.ceil(Math.sqrt(clients.length * 2)));
+				const col = i % cols;
+				const row = Math.floor(i / cols);
+				const spacingX = 165;
+				const startX = centerX - ((cols - 1) * spacingX) / 2;
+				positions[cl.id] = { x: startX + col * spacingX, y: 420 + row * 105 };
+			}
+		});
 
-    nodePositions = positions;
-  }
+		nodePositions = positions;
+	}
 
-  async function saveLayout() {
-    try {
-      await apiFetch('/api/config/settings', {
-        method: 'POST',
-        body: JSON.stringify({ map_positions: nodePositions })
-      });
-      savedPositions = { ...nodePositions };
-      showToast('Posições da topologia salvas', 'success');
-    } catch (e) {
-      showToast(e.message, 'error');
-    }
-  }
+	async function saveLayout() {
+		try {
+			await apiFetch('/api/config/settings', {
+				method: 'POST',
+				body: JSON.stringify({ map_positions: nodePositions })
+			});
+			savedPositions = { ...nodePositions };
+			showToast('Posições da topologia salvas.', 'success');
+		} catch (e) {
+			showToast(e.message, 'error');
+		}
+	}
 
-  async function resetLayout() {
-    computeLayout(true);
-    await saveLayout();
-  }
+	async function resetLayout() {
+		computeLayout(true);
+		await saveLayout();
+	}
 
-  let visibleNodes = $derived.by(() => {
-    return rawNodes.filter((n) => {
-      if (!showClients && n.type === 'client') return false;
-      if (!showOffline && (n.status === 'Offline' || n.status === 'offline')) return false;
-      return true;
-    });
-  });
+	let visibleNodes = $derived.by(() => {
+		return rawNodes.filter((n) => {
+			if (!showClients && n.type === 'client') return false;
+			if (!showOffline && (n.status === 'Offline' || n.status === 'offline')) return false;
+			return true;
+		});
+	});
 
-  let visibleNodeIds = $derived(new Set(visibleNodes.map((n) => n.id)));
+	let visibleNodeIds = $derived(new Set(visibleNodes.map((n) => n.id)));
 
-  let visibleEdges = $derived.by(() => {
-    return rawEdges.filter((e) => visibleNodeIds.has(e.from) && visibleNodeIds.has(e.to));
-  });
+	let visibleEdges = $derived.by(() => {
+		return rawEdges.filter((e) => visibleNodeIds.has(e.from) && visibleNodeIds.has(e.to));
+	});
 
-  function getEdgeColor(edge) {
-    if (edge.type === 'uplink') return '#006fff';
-    if (edge.type === 'infra') return '#a855f7';
-    return '#2e3646';
-  }
+	function getEdgeStroke(edge) {
+		if (edge.type === 'uplink') return 'var(--accent-hover)';
+		if (edge.type === 'infra') return 'var(--status-purple)';
+		return 'var(--border-strong)';
+	}
 
-  function handleSvgMouseDown(e) {
-    if (e.target.closest('.topo-node')) return;
-    isPanning = true;
-    panStart = { x: e.clientX - panX, y: e.clientY - panY };
-  }
+	function handleSvgMouseDown(e) {
+		if (e.target.closest('.topo-node')) return;
+		isPanning = true;
+		panStart = { x: e.clientX - panX, y: e.clientY - panY };
+	}
 
-  function handleSvgMouseMove(e) {
-    if (draggingNodeId) {
-      const svgRect = e.currentTarget.getBoundingClientRect();
-      const x = (e.clientX - svgRect.left - panX) / zoom;
-      const y = (e.clientY - svgRect.top - panY) / zoom;
-      nodePositions = {
-        ...nodePositions,
-        [draggingNodeId]: { x: Math.round(x), y: Math.round(y) }
-      };
-      return;
-    }
-    if (isPanning) {
-      panX = e.clientX - panStart.x;
-      panY = e.clientY - panStart.y;
-    }
-  }
+	function handleSvgMouseMove(e) {
+		if (draggingNodeId) {
+			const svgRect = e.currentTarget.getBoundingClientRect();
+			const x = (e.clientX - svgRect.left - panX) / zoom;
+			const y = (e.clientY - svgRect.top - panY) / zoom;
+			nodePositions = {
+				...nodePositions,
+				[draggingNodeId]: { x: Math.round(x), y: Math.round(y) }
+			};
+			return;
+		}
+		if (isPanning) {
+			panX = e.clientX - panStart.x;
+			panY = e.clientY - panStart.y;
+		}
+	}
 
-  function handleSvgMouseUp() {
-    isPanning = false;
-    draggingNodeId = null;
-  }
+	function handleSvgMouseUp() {
+		isPanning = false;
+		draggingNodeId = null;
+	}
 
-  function handleWheel(e) {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    zoom = Math.min(2.2, Math.max(0.4, Number((zoom + delta).toFixed(2))));
-  }
+	function handleWheel(e) {
+		e.preventDefault();
+		const delta = e.deltaY < 0 ? 0.1 : -0.1;
+		zoom = Math.min(2.2, Math.max(0.4, Number((zoom + delta).toFixed(2))));
+	}
 
-  onMount(loadTopology);
+	onMount(loadTopology);
 </script>
 
-<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-  <div>
-    <h2 class="text-base font-bold text-white">Mapa de Topologia L2</h2>
-    <p class="text-xs text-[#8c96a8]">
-      Descoberta passiva via tabelas MAC FDB e uplinks configurados — arraste os nós para organizar
-    </p>
-  </div>
+<div class="page-header">
+	<div>
+		<h1 class="page-title">Mapa de Topologia L2</h1>
+		<p class="page-subtitle">
+			Descoberta passiva via tabelas MAC FDB e uplinks configurados — arraste os nós para organizar
+		</p>
+	</div>
 
-  <div class="flex flex-wrap items-center gap-2">
-    <label class="flex items-center gap-2 text-xs text-[#8c96a8] bg-[#151820] px-3 py-1.5 rounded-lg border border-[#232936] cursor-pointer">
-      <input type="checkbox" bind:checked={showClients} class="accent-[#006fff]" />
-      <span>Exibir Clientes ({rawNodes.filter((n) => n.type === 'client').length})</span>
-    </label>
+	<div class="toolbar">
+		<label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+			<input type="checkbox" bind:checked={showClients} data-testid="topo-toggle-clients" />
+			<span>Exibir Clientes ({rawNodes.filter((n) => n.type === 'client').length})</span>
+		</label>
 
-    <label class="flex items-center gap-2 text-xs text-[#8c96a8] bg-[#151820] px-3 py-1.5 rounded-lg border border-[#232936] cursor-pointer">
-      <input type="checkbox" bind:checked={showOffline} class="accent-[#006fff]" />
-      <span>Incluir Offline</span>
-    </label>
+		<label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+			<input type="checkbox" bind:checked={showOffline} data-testid="topo-toggle-offline" />
+			<span>Incluir Offline</span>
+		</label>
 
-    <button onclick={() => (zoom = Math.min(2.2, zoom + 0.15))} class="unifi-btn unifi-btn-secondary py-1.5 px-2.5" title="Zoom In">
-      +
-    </button>
-    <button onclick={() => (zoom = Math.max(0.4, zoom - 0.15))} class="unifi-btn unifi-btn-secondary py-1.5 px-2.5" title="Zoom Out">
-      −
-    </button>
-    <button
-      onclick={() => {
-        zoom = 1;
-        panX = 0;
-        panY = 0;
-      }}
-      class="unifi-btn unifi-btn-secondary py-1.5 px-2.5"
-    >
-      Centralizar
-    </button>
-    <button onclick={resetLayout} class="unifi-btn unifi-btn-secondary py-1.5">
-      Auto-Layout
-    </button>
-    <button onclick={saveLayout} class="unifi-btn unifi-btn-primary py-1.5">
-      Salvar Layout
-    </button>
-  </div>
+		<button type="button" onclick={() => (zoom = Math.min(2.2, zoom + 0.15))} class="btn btn-secondary btn-sm" title="Aumentar Zoom">
+			+
+		</button>
+		<button type="button" onclick={() => (zoom = Math.max(0.4, zoom - 0.15))} class="btn btn-secondary btn-sm" title="Reduzir Zoom">
+			−
+		</button>
+		<button
+			type="button"
+			onclick={() => {
+				zoom = 1;
+				panX = 0;
+				panY = 0;
+			}}
+			class="btn btn-secondary btn-sm"
+		>
+			Centralizar
+		</button>
+		<button type="button" onclick={resetLayout} class="btn btn-secondary btn-sm" data-testid="topo-autolayout-btn">
+			Auto-Layout
+		</button>
+		<button type="button" onclick={saveLayout} class="btn btn-primary btn-sm" data-testid="topo-save-btn">
+			Salvar Layout
+		</button>
+	</div>
 </div>
 
-<!-- Topology Canvas -->
-<div class="unifi-card relative overflow-hidden h-[72vh] bg-[#090b10] select-none">
-  {#if loading}
-    <div class="absolute inset-0 flex items-center justify-center text-xs text-[#8c96a8]">
-      Construindo grafo de topologia L2...
-    </div>
-  {:else if visibleNodes.length === 0}
-    <div class="absolute inset-0 flex items-center justify-center text-xs text-[#8c96a8]">
-      Nenhum nó de topologia disponível.
-    </div>
-  {:else}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <svg
-      class="w-full h-full cursor-grab active:cursor-grabbing"
-      onmousedown={handleSvgMouseDown}
-      onmousemove={handleSvgMouseMove}
-      onmouseup={handleSvgMouseUp}
-      onwheel={handleWheel}
-      role="img"
-      aria-label="Mapa de Topologia da Rede"
-    >
-      <defs>
-        <pattern id="unifiGrid" width="32" height="32" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="#1e2433" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#unifiGrid)" />
+<div
+	class="card"
+	style="position: relative; overflow: hidden; height: 70vh; background-color: var(--bg-inset); user-select: none;"
+	data-testid="topology-canvas-card"
+>
+	{#if loading}
+		<div class="empty-state">
+			<p style="color: var(--text-secondary);">Construindo grafo de topologia L2...</p>
+		</div>
+	{:else if visibleNodes.length === 0}
+		<div class="empty-state">
+			<p style="color: var(--text-secondary);">Nenhum nó de topologia disponível.</p>
+		</div>
+	{:else}
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<svg
+			width="1200"
+			height="700"
+			viewBox="0 0 1200 700"
+			class="topology-svg"
+			style="width: 100%; height: 100%; display: block; cursor: grab;"
+			onmousedown={handleSvgMouseDown}
+			onmousemove={handleSvgMouseMove}
+			onmouseup={handleSvgMouseUp}
+			onwheel={handleWheel}
+			role="img"
+			aria-label="Mapa de Topologia da Rede"
+			data-testid="topology-svg"
+		>
+			<defs>
+				<pattern id="topoGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+					<circle cx="1" cy="1" r="1" fill="var(--border-subtle)" />
+				</pattern>
+			</defs>
+			<rect width="100%" height="100%" fill="url(#topoGrid)" />
 
-      <g transform="translate({panX}, {panY}) scale({zoom})">
-        <!-- Edges -->
-        {#each visibleEdges as edge}
-          {@const fromPos = nodePositions[edge.from] || { x: 0, y: 0 }}
-          {@const toPos = nodePositions[edge.to] || { x: 0, y: 0 }}
-          {@const midX = (fromPos.x + toPos.x) / 2}
-          {@const midY = (fromPos.y + toPos.y) / 2}
-          <g>
-            <line
-              x1={fromPos.x}
-              y1={fromPos.y}
-              x2={toPos.x}
-              y2={toPos.y}
-              stroke={getEdgeColor(edge)}
-              stroke-width={edge.type === 'uplink' ? 2.5 : 1.5}
-            />
-            {#if edge.label}
-              <rect
-                x={midX - 34}
-                y={midY - 10}
-                width="68"
-                height="18"
-                rx="4"
-                fill="#111318"
-                stroke="#232936"
-              />
-              <text
-                x={midX}
-                y={midY + 2}
-                text-anchor="middle"
-                fill="#8c96a8"
-                font-size="9"
-                font-family="JetBrains Mono, monospace"
-              >
-                {edge.label}
-              </text>
-            {/if}
-          </g>
-        {/each}
+			<g transform="translate({panX}, {panY}) scale({zoom})">
+				{#each visibleEdges as edge}
+					{@const fromPos = nodePositions[edge.from] || { x: 0, y: 0 }}
+					{@const toPos = nodePositions[edge.to] || { x: 0, y: 0 }}
+					{@const midX = (fromPos.x + toPos.x) / 2}
+					{@const midY = (fromPos.y + toPos.y) / 2}
+					<g>
+						<line
+							x1={fromPos.x}
+							y1={fromPos.y}
+							x2={toPos.x}
+							y2={toPos.y}
+							stroke={getEdgeStroke(edge)}
+							stroke-width={edge.type === 'uplink' ? 2.5 : 1.5}
+						/>
+						{#if edge.label}
+							<rect
+								x={midX - 36}
+								y={midY - 10}
+								width="72"
+								height="18"
+								rx="4"
+								fill="var(--bg-surface)"
+								stroke="var(--border-subtle)"
+							/>
+							<text
+								x={midX}
+								y={midY + 3}
+								text-anchor="middle"
+								fill="var(--text-secondary)"
+								font-size="9"
+								font-family="var(--font-mono)"
+							>
+								{edge.label}
+							</text>
+						{/if}
+					</g>
+				{/each}
 
-        <!-- Nodes -->
-        {#each visibleNodes as node}
-          {@const pos = nodePositions[node.id] || { x: 300, y: 200 }}
-          {@const isSwitch = node.type === 'switch'}
-          {@const isInfra = node.type !== 'switch' && node.type !== 'client'}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <g
-            class="topo-node cursor-pointer"
-            transform="translate({pos.x}, {pos.y})"
-            onmousedown={(e) => {
-              e.stopPropagation();
-              draggingNodeId = node.id;
-              selectedNode = node;
-            }}
-          >
-            <rect
-              x={isSwitch ? -78 : -64}
-              y={isSwitch ? -30 : -24}
-              width={isSwitch ? 156 : 128}
-              height={isSwitch ? 60 : 48}
-              rx="10"
-              fill={isSwitch ? '#161b26' : '#12151e'}
-              stroke={selectedNode?.id === node.id
-                ? '#006fff'
-                : isSwitch
-                  ? '#006fff'
-                  : isInfra
-                    ? '#a855f7'
-                    : '#262d3d'}
-              stroke-width={isSwitch || selectedNode?.id === node.id ? '2' : '1.2'}
-            />
+				{#each visibleNodes as node}
+					{@const pos = nodePositions[node.id] || { x: 300, y: 200 }}
+					{@const isSwitch = node.type === 'switch'}
+					{@const isInfra = node.type !== 'switch' && node.type !== 'client'}
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<g
+						class="topo-node"
+						style="cursor: pointer;"
+						transform="translate({pos.x}, {pos.y})"
+						data-testid="topo-node-{node.id}"
+						onmousedown={(e) => {
+							e.stopPropagation();
+							draggingNodeId = node.id;
+							selectedNode = node;
+						}}
+					>
+						<rect
+							x={isSwitch ? -80 : -66}
+							y={isSwitch ? -30 : -24}
+							width={isSwitch ? 160 : 132}
+							height={isSwitch ? 60 : 48}
+							rx="8"
+							fill={isSwitch ? 'var(--bg-elevated)' : 'var(--bg-surface)'}
+							stroke={selectedNode?.id === node.id
+								? 'var(--accent-hover)'
+								: isSwitch
+									? 'var(--accent-primary)'
+									: isInfra
+										? 'var(--status-purple)'
+										: 'var(--border-strong)'}
+							stroke-width={isSwitch || selectedNode?.id === node.id ? '2' : '1.2'}
+						/>
 
-            <circle
-              cx={isSwitch ? -62 : -50}
-              cy={isSwitch ? -12 : -8}
-              r="4"
-              fill={node.status === 'Offline' || node.status === 'offline' ? '#ff3d71' : '#00d68f'}
-            />
+						<circle
+							cx={isSwitch ? -64 : -52}
+							cy={isSwitch ? -10 : -7}
+							r="4"
+							fill={node.status === 'Offline' || node.status === 'offline'
+								? 'var(--status-danger)'
+								: 'var(--status-online)'}
+						/>
 
-            <text
-              x={isSwitch ? -50 : -38}
-              y={isSwitch ? -8 : -4}
-              fill="#f0f3f8"
-              font-size={isSwitch ? '11' : '10'}
-              font-weight="600"
-            >
-              {(node.label || node.id).slice(0, 18)}
-            </text>
+						<text
+							x={isSwitch ? -52 : -40}
+							y={isSwitch ? -6 : -3}
+							fill="var(--text-primary)"
+							font-size={isSwitch ? '11' : '10'}
+							font-weight="600"
+						>
+							{(node.label || node.id).slice(0, 18)}
+						</text>
 
-            <text
-              x={isSwitch ? -62 : -50}
-              y={isSwitch ? 12 : 12}
-              fill="#8c96a8"
-              font-size="9"
-              font-family="JetBrains Mono, monospace"
-            >
-              {(node.ip || node.mac || node.vendor || node.type).slice(0, 20)}
-            </text>
-          </g>
-        {/each}
-      </g>
-    </svg>
+						<text
+							x={isSwitch ? -64 : -52}
+							y={isSwitch ? 13 : 12}
+							fill="var(--text-secondary)"
+							font-size="9"
+							font-family="var(--font-mono)"
+						>
+							{(node.ip || node.mac || node.vendor || node.type).slice(0, 20)}
+						</text>
+					</g>
+				{/each}
+			</g>
+		</svg>
 
-    <!-- Legend Bottom Left -->
-    <div class="absolute bottom-4 left-4 bg-[#111318]/90 backdrop-blur border border-[#232936] rounded-lg px-3.5 py-2.5 flex items-center gap-4 text-[11px] text-[#8c96a8]">
-      <span class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-sm bg-[#006fff]"></span> Switch Gerenciado
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-sm bg-[#a855f7]"></span> Infra / Hub
-      </span>
-      <span class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-sm bg-[#00d68f]"></span> Cliente Ativo
-      </span>
-    </div>
+		<div
+			style="position: absolute; bottom: 14px; left: 14px; background-color: var(--bg-glass); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px 14px; display: flex; gap: 16px; font-size: 11.5px; color: var(--text-secondary);"
+		>
+			<span class="legend-item"><span class="port-led led-10g"></span> Switch Gerenciado</span>
+			<span class="legend-item"><span class="port-led led-25g"></span> Cliente Ativo</span>
+		</div>
 
-    <!-- Selected Node Inspector Drawer -->
-    {#if selectedNode}
-      <div class="absolute top-4 right-4 w-72 bg-[#111318]/95 backdrop-blur border border-[#2e3646] rounded-xl p-4 shadow-2xl">
-        <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-[#232936]">
-          <span class="text-xs font-bold uppercase tracking-wider text-[#4da3ff]">
-            {selectedNode.type}
-          </span>
-          <button onclick={() => (selectedNode = null)} class="text-xs text-[#8c96a8] hover:text-white">✕</button>
-        </div>
-        <div class="space-y-2 text-xs">
-          <div>
-            <div class="text-[#8c96a8]">Nome</div>
-            <div class="font-semibold text-white">{selectedNode.label}</div>
-          </div>
-          {#if selectedNode.ip}
-            <div>
-              <div class="text-[#8c96a8]">Endereço IP</div>
-              <div class="mono text-white">{selectedNode.ip}</div>
-            </div>
-          {/if}
-          {#if selectedNode.mac}
-            <div>
-              <div class="text-[#8c96a8]">Endereço MAC</div>
-              <div class="mono text-[#4da3ff]">{selectedNode.mac}</div>
-            </div>
-          {/if}
-          {#if selectedNode.vendor}
-            <div>
-              <div class="text-[#8c96a8]">Fabricante</div>
-              <div class="text-white">{selectedNode.vendor}</div>
-            </div>
-          {/if}
-          {#if selectedNode.model}
-            <div>
-              <div class="text-[#8c96a8]">Modelo</div>
-              <div class="mono text-white">{selectedNode.model}</div>
-            </div>
-          {/if}
-          {#if selectedNode.last_seen_ip}
-            <div>
-              <div class="text-[#8c96a8]">Conectado em</div>
-              <div class="mono text-[#00d68f]">{selectedNode.last_seen_ip} — Porta #{selectedNode.last_seen_port}</div>
-            </div>
-          {/if}
-        </div>
-      </div>
-    {/if}
-  {/if}
+		{#if selectedNode}
+			<div
+				class="card"
+				style="position: absolute; top: 14px; right: 14px; width: 270px; padding: 14px;"
+				data-testid="topo-node-inspector"
+			>
+				<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle);">
+					<span class="badge badge-accent mono">{selectedNode.type}</span>
+					<button type="button" onclick={() => (selectedNode = null)} class="btn btn-ghost btn-sm">✕</button>
+				</div>
+				<div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+					<div>
+						<div style="color: var(--text-secondary);">Nome</div>
+						<div style="font-weight: 600;">{selectedNode.label}</div>
+					</div>
+					{#if selectedNode.ip}
+						<div>
+							<div style="color: var(--text-secondary);">Endereço IP</div>
+							<div class="mono">{selectedNode.ip}</div>
+						</div>
+					{/if}
+					{#if selectedNode.mac}
+						<div>
+							<div style="color: var(--text-secondary);">Endereço MAC</div>
+							<div class="mono" style="color: var(--accent-hover);">{selectedNode.mac}</div>
+						</div>
+					{/if}
+					{#if selectedNode.vendor}
+						<div>
+							<div style="color: var(--text-secondary);">Fabricante</div>
+							<div>{selectedNode.vendor}</div>
+						</div>
+					{/if}
+					{#if selectedNode.last_seen_ip}
+						<div>
+							<div style="color: var(--text-secondary);">Conectado em</div>
+							<div class="mono" style="color: var(--status-online);">
+								{selectedNode.last_seen_ip} — Porta #{selectedNode.last_seen_port}
+							</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+		{/if}
+	{/if}
 </div>

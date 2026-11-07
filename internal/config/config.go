@@ -17,7 +17,7 @@ import (
 	"horaco-switch-dashboard/internal/auth"
 )
 
-const Version = "2026.8.0-unifi"
+const Version = "2.1.0"
 
 var safeNameRegex = regexp.MustCompile(`^[a-zA-Z0-9._\-]+$`)
 
@@ -323,7 +323,7 @@ func (s *Store) copyIfMissing(src, dst string) {
 
 func defaultConfig() AppConfig {
 	return AppConfig{
-		Title:                 "UniFi Switch OS",
+		Title:                 "Switch Dashboard",
 		RefreshInterval:       15,
 		MACRefreshMultiplier:  5,
 		PortsWrapThreshold:    0,

@@ -18,11 +18,11 @@ endif
 GO := $(RUN) go
 NPM := $(RUN) npm --prefix $(FRONTEND_DIR)
 
-.PHONY: help all setup frontend backend build run run-vpn dev dev-frontend dev-backend test vet tidy clean docker-build docker-up docker-down docker-logs
+.PHONY: help all setup frontend backend build run run-vpn dev dev-frontend dev-backend test vet verify tidy clean docker-build docker-up docker-down docker-logs
 
 help: ## Exibe esta mensagem de ajuda com todos os alvos disponíveis
 	@echo "======================================================================"
-	@echo "  UniFi Switch OS (Go + SvelteKit) - Makefile"
+	@echo "  Switch Dashboard (Go + SvelteKit) - Makefile"
 	@echo "======================================================================"
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUso:\n  make \033[36m<alvo>\033[0m\n\nAlvos:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@echo ""
@@ -75,6 +75,9 @@ test: ## Executa a suíte de testes unitários do Go com detector de race condit
 
 vet: ## Executa análise estática (go vet) no código Go
 	$(GO) vet ./...
+
+verify: build ## Executa a suíte de verificação end-to-end e auditoria do design system
+	python3 scripts/verify_app.py
 
 tidy: ## Limpa e atualiza o go.mod e go.sum
 	$(GO) mod tidy

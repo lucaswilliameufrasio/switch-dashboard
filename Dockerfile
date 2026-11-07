@@ -1,4 +1,4 @@
-# Stage 1: Build SvelteKit UniFi OS Frontend
+# Stage 1: Build SvelteKit Switch Dashboard Frontend
 FROM node:26-alpine AS frontend-builder
 WORKDIR /build/frontend
 COPY frontend/package.json ./

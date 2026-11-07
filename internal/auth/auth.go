@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	SessionCookieName = "unifi_switch_session"
+	SessionCookieName = "switch_dashboard_session"
 	CSRFHeaderName    = "X-CSRF-Token"
 	SessionTTL        = 24 * time.Hour
 	MaxLoginAttempts  = 5
