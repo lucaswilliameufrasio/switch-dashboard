@@ -1,35 +1,31 @@
-# Python byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Go binary & build artifacts
+switch-dashboard
+*.exe
+*.test
+*.out
 
-# Virtual environments
+# Frontend build & dependencies
+frontend/node_modules/
+frontend/.svelte-kit/
+web/dist/*
+!web/dist/.gitkeep
+
+# Security & secrets
+.master.key
 .env
-.venv
-env/
-venv/
-ENV/
+config.json
 
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Project-specific state and temporary files
+# Runtime state & history files
 counters.json
 notes.json
 settings.json
 history_hourly.json
 history_daily.json
-backup_test_temp/
-
-# Switch configuration backups
+oui_vendors.json
 backup/
-
-# Logs and log directories
 logs/
 *.log
 
-# Databases, state, and credentials configs
-network_scanner.db
-last_post_scan.ts
-config.json
+# OS generated files
+.DS_Store
+Thumbs.db

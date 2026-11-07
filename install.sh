@@ -1,91 +1,71 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-INSTALL_DIR="/opt/switch-dashboard"
+echo "==================================================="
+echo "   UniFi Switch OS (Go + SvelteKit) - Installer    "
+echo "==================================================="
 
-echo "=== Switch Dashboard Installation ==="
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVICE_NAME="horaco-dashboard.service"
+SERVICE_USER="switchos"
 
-if [ ! -d "$INSTALL_DIR" ]; then
-    mkdir -p "$INSTALL_DIR"
-fi
-
-cp -r ./* "$INSTALL_DIR/"
-cd "$INSTALL_DIR"
-
-echo "[1/3] Installing Python dependencies..."
-
-# Auto-detect and install pip3 if missing
-if ! command -v pip3 &> /dev/null; then
-    echo "pip3 not found, installing..."
-    if command -v apt-get &> /dev/null; then
-        apt-get update && apt-get install -y python3-pip
-    elif command -v dnf &> /dev/null; then
-        dnf install -y python3-pip
-    elif command -v pacman &> /dev/null; then
-        pacman -S --noconfirm python-pip
-    fi
-fi
-
-# Verify and install python3-venv to avoid "externally-managed-environment" issues on Debian 12+ / Ubuntu 23+
-USE_VENV=true
-if ! python3 -c "import venv" &> /dev/null; then
-    echo "python3-venv module not found."
-    if command -v apt-get &> /dev/null; then
-        echo "Attempting to install python3-venv..."
-        apt-get update && apt-get install -y python3-venv || USE_VENV=false
+if [ ! -f "$APP_DIR/switch-dashboard" ]; then
+    echo "Compilando frontend SvelteKit e binário Go..."
+    if command -v mise >/dev/null 2>&1; then
+        (cd "$APP_DIR/frontend" && mise exec -- npm install && mise exec -- npm run build)
+        (cd "$APP_DIR" && mise exec -- go build -trimpath -ldflags="-s -w" -o switch-dashboard ./cmd/server)
     else
-        USE_VENV=false
+        (cd "$APP_DIR/frontend" && npm install && npm run build)
+        (cd "$APP_DIR" && go build -trimpath -ldflags="-s -w" -o switch-dashboard ./cmd/server)
     fi
 fi
 
-if [ "$USE_VENV" = true ]; then
-    echo "Creating virtual environment in $INSTALL_DIR/venv..."
-    python3 -m venv "$INSTALL_DIR/venv"
-    "$INSTALL_DIR/venv/bin/pip" install --upgrade pip
-    "$INSTALL_DIR/venv/bin/pip" install -r requirements.txt
-    PYTHON_EXEC="$INSTALL_DIR/venv/bin/python"
-else
-    echo "Installing packages globally (with fallback for externally managed environments)..."
-    if pip3 install -r requirements.txt; then
-        echo "Installation completed successfully."
-    else
-        echo "Attempting with --break-system-packages..."
-        pip3 install -r requirements.txt --break-system-packages
-    fi
-    PYTHON_EXEC="/usr/bin/python3"
+if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
+    echo "Criando usuário de sistema sem privilégios ($SERVICE_USER)..."
+    sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER"
 fi
 
-echo "[2/3] Creating systemd service..."
-cat > /etc/systemd/system/switch-dashboard.service << EOF
+sudo chown -R "$SERVICE_USER:$SERVICE_USER" "$APP_DIR"
+[ -f "$APP_DIR/config.json" ] && sudo chmod 600 "$APP_DIR/config.json"
+[ -f "$APP_DIR/.master.key" ] && sudo chmod 600 "$APP_DIR/.master.key"
+
+echo "Configurando serviço systemd endurecido (/etc/systemd/system/$SERVICE_NAME)..."
+sudo tee "/etc/systemd/system/$SERVICE_NAME" > /dev/null <<EOF
 [Unit]
-Description=Switch Dashboard - Ports and Traffic
-After=network.target
+Description=UniFi Switch OS Controller (Horaco / KeepLink / RTL)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/opt/switch-dashboard
-ExecStart=$PYTHON_EXEC /opt/switch-dashboard/app.py
-Restart=always
-RestartSec=10
+User=$SERVICE_USER
+Group=$SERVICE_USER
+WorkingDirectory=$APP_DIR
+Environment="DASHBOARD_HOST=127.0.0.1"
+Environment="DASHBOARD_PORT=8080"
+ExecStart=$APP_DIR/switch-dashboard
+Restart=on-failure
+RestartSec=5
+
+# Hardening systemd
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
-systemctl enable switch-dashboard
-systemctl start switch-dashboard
+sudo systemctl daemon-reload
+sudo systemctl enable "$SERVICE_NAME"
+sudo systemctl restart "$SERVICE_NAME"
 
-echo "[3/3] Service status:"
-systemctl status switch-dashboard --no-pager
-
-echo ""
-echo "=== Installation completed ==="
-echo "Dashboard available at: http://192.168.1.32:8080"
-echo ""
-echo "If you want to use nginx as a reverse proxy (e.g. /switch):"
-echo "  location /switch {"
-echo "    proxy_pass http://127.0.0.1:8080;"
-echo '    proxy_set_header Host $host;'
-echo "  }"
+echo "==================================================="
+echo " Instalação concluída! Serviço rodando em:"
+echo " http://127.0.0.1:8080 (usuário: $SERVICE_USER)"
+echo "==================================================="
